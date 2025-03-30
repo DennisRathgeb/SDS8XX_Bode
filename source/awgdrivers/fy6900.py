@@ -9,7 +9,7 @@ Driver for FeelTech FY6900 AWG.
 import serial
 import time
 from awgdrivers.base_awg import BaseAWG
-import awgdrivers.constants
+import awgdrivers.constants as constants
 from awgdrivers.exceptions import UnknownChannelError
 
 # Port settings constants
@@ -25,7 +25,7 @@ EOL = '\x0A'
 CHANNELS = (0, 1, 2)
 CHANNELS_ERROR = "Channel can be 1 or 2."
 # FY6900 requires some delay between commands. 0.5 seconds seems to work, .25 seconds is iffy. Your unit might need more.
-SLEEP_TIME = 0.5
+SLEEP_TIME = 0.4
 
 # Output impedance of the AWG
 R_IN = 50.0
@@ -44,9 +44,24 @@ class FY6900(BaseAWG):
         self.channel_on = [False, False]
         self.r_load = [50, 50]
         self.v_out_coeff = [1, 1]
-    
-    def connect(self):
-        self.ser = serial.Serial(self.port, BAUD_RATE, BITS, PARITY, STOP_BITS, timeout=self.timeout)
+
+    def connect(self):   
+        try:
+            self.ser = serial.Serial(
+                self.port,
+                BAUD_RATE,
+                BITS,
+                PARITY,
+                STOP_BITS,
+                timeout=self.timeout
+            )
+            return True  
+        except serial.SerialException as e:
+            print(f"Failed to connect to AWG on {self.port}: {e}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return False
     
     def disconnect(self):
         self.ser.close()
@@ -54,8 +69,8 @@ class FY6900(BaseAWG):
     def send_command(self, cmd):
         self.ser.write(cmd.encode())
         self.ser.write(EOL.encode())
-        print(cmd.encode())
-        print(EOL.encode())
+        #print(cmd.encode())
+        #print(EOL.encode())
         time.sleep(SLEEP_TIME)
         
     def initialize(self):
@@ -167,7 +182,7 @@ class FY6900(BaseAWG):
             cmd = "WFW00"
             self.send_command(cmd)
         
-    def set_amplitue(self, channel, amplitude):
+    def set_amplitude(self, channel, amplitude):
         """
         Sets amplitude of the selected channel.
         

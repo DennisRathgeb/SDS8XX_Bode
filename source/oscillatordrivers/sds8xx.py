@@ -3,6 +3,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+import oscillatordrivers.constants as constants
+
 MAX_TIMEOUT = 10000
 N_DIV_H = 10
 N_DIV_V = 8
@@ -15,7 +17,7 @@ class SDS8XX:
         
 
     def connect(self):
-        print("Scanning USB-connected SIGLENT scopes...\n")
+        #print("Scanning USB-connected SIGLENT scopes...\n")
         devices = self.rm.list_resources()
         for res in devices:
             if "USB" in res:
@@ -26,7 +28,7 @@ class SDS8XX:
                         self.scope = dev
                         self.idn = idn
                         self.scope.timeout = MAX_TIMEOUT
-                        print(f"\nConnected to: {self.idn}")
+                        print(f"Connecting to: {self.idn}")
                         return True
                 except Exception as e:
                     print(f"Could not connect to {res}: {e}")
@@ -54,7 +56,7 @@ class SDS8XX:
     # --- Basic channel Setup Commands ---
     def auto_setup(self):
         self.write("ASET")
-        time.sleep(3)
+        time.sleep(6)
 
     def set_vdiv(self, channel, volts_per_div):
         self.write(f"C{channel}:VDIV {volts_per_div}")
@@ -229,6 +231,8 @@ class SDS8XX:
         cmd = f"C{channel1}-C{channel2}:MEAD? PHA"
         return self.query_meas(command=cmd, unit="°")
 
-
+    def clamp_timebase(self, value, valid_options=constants.VALID_TIMEBASERANGES):
+        valid = [tb for tb in valid_options if tb <= value]
+        return max(valid) if valid else min(valid_options)
 
 
