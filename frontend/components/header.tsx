@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import AWGSection from "./awg-section"
-import ScopeSection from "./scope-section"
-import { getStatus } from "../api"
-import type { StatusResponse } from "../types"
+import { useEffect, useState } from "react";
+import AWGSection from "./awg-section";
+import ScopeSection from "./scope-section";
+import { getStatus } from "../api";
+import type { StatusResponse } from "../types";
 
 interface HeaderProps {
-  onStatusChange: (status: StatusResponse) => void
+  onStatusChange: (status: StatusResponse) => void;
 }
 
 export default function Header({ onStatusChange }: HeaderProps) {
@@ -15,24 +15,24 @@ export default function Header({ onStatusChange }: HeaderProps) {
     awg: "disconnected",
     scope: "disconnected",
     bode: "not_ready",
-  })
+  });
 
   const fetchStatus = async () => {
     try {
-      const statusData = await getStatus()
-      setStatus(statusData)
-      onStatusChange(statusData)
+      const statusData = await getStatus();
+      setStatus(statusData);
+      onStatusChange(statusData);
     } catch (error) {
-      console.error("Failed to fetch status:", error)
+      console.error("Failed to fetch status:", error);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchStatus()
+    fetchStatus();
     // Set up polling for status updates
-    const intervalId = setInterval(fetchStatus, 5000)
-    return () => clearInterval(intervalId)
-  }, [])
+    const intervalId = setInterval(fetchStatus, 5000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <header className="bg-white shadow-sm p-4 mb-6">
@@ -41,6 +41,5 @@ export default function Header({ onStatusChange }: HeaderProps) {
         <ScopeSection status={status.scope} onStatusChange={fetchStatus} />
       </div>
     </header>
-  )
+  );
 }
-
