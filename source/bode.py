@@ -28,7 +28,27 @@ class BodePlotter:
         self.stop_freq = 100e3
         self.num_points = 20
         self.amplitude = AWG_AMPLITUDE
+        self.frequencies = None
+        self.scope_timebase = None
 
+    def set_params(self, params: dict):
+        self.start_freq = params.get("start_freq", self.start_freq)
+        self.stop_freq = params.get("stop_freq", self.stop_freq)
+        self.num_points = params.get("num_points", self.num_points)
+        self.n_samples = params.get("n_samples", self.n_samples)
+        self.amplitude = params.get("amplitude", self.amplitude)
+        self.tolerance = params.get("tolerance", self.tolerance)
+
+    def get_params(self) -> dict:
+        return {
+            "start_freq": self.start_freq,
+            "stop_freq": self.stop_freq,
+            "num_points": self.num_points,
+            "n_samples": self.n_samples,
+            "amplitude": self.amplitude,
+            "tolerance": self.tolerance
+        }
+    
     def setup_awg(self):
         """
         Setup the AWG with the given parameters.
@@ -96,24 +116,28 @@ class BodePlotter:
             print("for freq %d too much noise: length  rms1:%d, rms2:%d, phase:%d" % (freq, len(filtered_rms1), len(filtered_rms2), len(filtered_phase)))
         return freq_meas, gain, phase
 
-    def run(self):  
+    def setup_run(self):  
         """
         Perform a Bode plot using the AWG and scope.
         """
         self.setup_awg()
         time.sleep(0.2)  
         self.scope.auto_setup()
-        
-        # Set up frequency sweep
-        frequencies = np.logspace(np.log10(self.start_freq), np.log10(self.stop_freq), self.num_points)
-        # set up timebase sweeping
-        scope_timebase = (1 / (frequencies*2)) #show 1/2 period per divisions on the screen
-        scope_timebase= [self.scope.clamp_timebase(tb) for tb in scope_timebase]
 
+        # Set up frequency sweep
+        self.frequencies = np.logspace(np.log10(self.start_freq), np.log10(self.stop_freq), self.num_points)
+        # set up timebase sweeping
+        self.scope_timebase = (1 / (self.frequencies*2)) #show 1/2 period per divisions on the screen
+        self.scope_timebase= [self.scope.clamp_timebase(tb) for tb in self.scope_timebase]
+
+        
+    def run(self):
         freq_meas = []
         gain = []
         phase = []
-        for f,tb in zip(frequencies, scope_timebase):
+        if(self.frequencies is None or self.scope_timebase is None):
+            self.setup_run()
+        for f,tb in zip(self.frequencies, self.scope_timebase):
             f,g,p  = self.collect_data_sample(f, tb)
             if f > 0:
                 freq_meas.append(f)
@@ -121,8 +145,6 @@ class BodePlotter:
                 phase.append(p)
             else:
                 print("skipping freq %d" % f)
-
-
         return freq_meas, gain, phase
 
     def plot(self, freq, gain, phase):
