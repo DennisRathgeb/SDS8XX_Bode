@@ -16,10 +16,10 @@ export default function BodePlotApp() {
   });
 
   const [config, setConfig] = useState<BodeConfig>({
-    start_freq: 10,
+    start_freq: 100,
     stop_freq: 100000,
-    num_points: 100,
-    n_samples: 10,
+    num_points: 300,
+    n_samples: 3,
     amplitude: 1.0,
     tolerance: 0.1,
   });
