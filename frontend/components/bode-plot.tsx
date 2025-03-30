@@ -45,12 +45,27 @@ export default function BodePlot({ data, isStreaming }: BodePlotProps) {
     }
   };
 
-  // Generate logarithmic ticks for x-axis
+  // Generate logarithmic ticks for x-axis based on data range
   const generateLogTicks = () => {
+    if (processedData.length === 0) return [10, 100, 1000, 10000, 100000];
+
+    const freqValues = processedData.map((d) => d.freq);
+    const minFreq = Math.min(...freqValues);
+    const maxFreq = Math.max(...freqValues);
+
+    // Find the powers of 10 that contain the data range
+    const minExponent = Math.floor(Math.log10(minFreq));
+    const maxExponent = Math.ceil(Math.log10(maxFreq));
+
+    // Include one power of 10 below and above the range
+    const startExponent = Math.max(minExponent - 1, 0);
+    const endExponent = maxExponent + 1;
+
     const ticks = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = startExponent; i <= endExponent; i++) {
       ticks.push(Math.pow(10, i));
     }
+
     return ticks;
   };
 
@@ -66,19 +81,67 @@ export default function BodePlot({ data, isStreaming }: BodePlotProps) {
   // Generate phase ticks
   const phaseTickValues = [-180, -90, -45, 0, 45, 90, 180];
 
-  // Generate gain ticks (8 evenly spaced ticks)
+  // Generate gain ticks (dynamically based on data with whole numbers)
   const generateGainTicks = () => {
-    if (processedData.length === 0) return [0, 10, 20, 30, 40, 50, 60, 70];
+    if (processedData.length === 0) return [-30, -20, -10, 0, 10, 20, 30, 40];
 
     const gainValues = processedData.map((d) => d.gain_dB);
     const minGain = Math.min(...gainValues);
     const maxGain = Math.max(...gainValues);
 
-    // Ensure we have a reasonable range
-    const range = Math.max(maxGain - minGain, 40);
-    const step = range / 7;
+    // Add padding to min and max
+    const paddedMin = Math.floor(minGain / 10) * 10 - 10; // Round down to nearest 10 and subtract 10
+    const paddedMax = Math.ceil(maxGain / 10) * 10 + 10; // Round up to nearest 10 and add 10
 
-    return Array.from({ length: 8 }, (_, i) => minGain + i * step);
+    // Generate whole number ticks between paddedMin and paddedMax
+    const range = paddedMax - paddedMin;
+    const tickCount = 8; // Aim for about 8 ticks
+    const step = Math.ceil(range / (tickCount - 1));
+
+    // Ensure step is a nice round number (5, 10, 20, etc.)
+    let niceStep = 10;
+    if (step <= 5) niceStep = 5;
+    else if (step <= 10) niceStep = 10;
+    else if (step <= 20) niceStep = 20;
+    else niceStep = Math.ceil(step / 10) * 10;
+
+    const ticks = [];
+    for (let i = paddedMin; i <= paddedMax; i += niceStep) {
+      ticks.push(i);
+    }
+
+    return ticks;
+  };
+
+  // Calculate gain domain with padding
+  const calculateGainDomain = () => {
+    if (processedData.length === 0) return [-30, 40];
+
+    const gainValues = processedData.map((d) => d.gain_dB);
+    const minGain = Math.min(...gainValues);
+    const maxGain = Math.max(...gainValues);
+
+    // Add padding to min and max
+    const paddedMin = Math.floor(minGain / 10) * 10 - 10; // Round down to nearest 10 and subtract 10
+    const paddedMax = Math.ceil(maxGain / 10) * 10 + 10; // Round up to nearest 10 and add 10
+
+    return [paddedMin, paddedMax];
+  };
+
+  // Calculate frequency domain with padding
+  const calculateFreqDomain = () => {
+    if (processedData.length === 0) return [10, 100000];
+
+    const freqValues = processedData.map((d) => d.freq);
+    const minFreq = Math.min(...freqValues);
+    const maxFreq = Math.max(...freqValues);
+
+    // Add padding as a multiplier/divider (since it's logarithmic)
+    const paddingFactor = 1.5;
+    const paddedMin = minFreq / paddingFactor;
+    const paddedMax = maxFreq * paddingFactor;
+
+    return [paddedMin, paddedMax];
   };
 
   return (
@@ -118,6 +181,7 @@ export default function BodePlot({ data, isStreaming }: BodePlotProps) {
                 }}
               />
               <YAxis
+                domain={calculateGainDomain()}
                 ticks={generateGainTicks()}
                 label={{
                   value: "Gain (dB)",
@@ -138,8 +202,9 @@ export default function BodePlot({ data, isStreaming }: BodePlotProps) {
                 dataKey="gain_dB"
                 stroke="#8884d8"
                 name="Gain"
-                dot={!isStreaming}
+                dot={false}
                 isAnimationActive={!isStreaming}
+                activeDot={{ r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -199,8 +264,9 @@ export default function BodePlot({ data, isStreaming }: BodePlotProps) {
                 dataKey="phase"
                 stroke="#82ca9d"
                 name="Phase"
-                dot={!isStreaming}
+                dot={false}
                 isAnimationActive={!isStreaming}
+                activeDot={{ r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>
